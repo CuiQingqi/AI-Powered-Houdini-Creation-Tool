@@ -1,0 +1,41 @@
+[bridge]
+host = 127.0.0.1
+port = 9877
+
+[mcp_server]
+host = 127.0.0.1
+port = 9000
+transport = streamable-http
+
+[web_ui]
+port = 9000
+auto_open = true
+
+[ai]
+provider = deepseek
+model = deepseek-chat
+context_limit = 128000
+temperature = 0.7
+max_iterations = 20
+
+# OpenAI / DeepSeek / GLM / OpenRouter
+openai_api_key = your-api-key-here
+openai_base_url = https://api.deepseek.com/v1
+openai_model = deepseek-chat
+
+# Anthropic Claude
+anthropic_api_key =
+anthropic_base_url = https://api.anthropic.com
+anthropic_model = claude-sonnet-4-20250514
+
+# Ollama local
+ollama_base_url = http://localhost:11434/v1
+ollama_model = llama3
+
+[obsidian]
+vault_path =
+auto_save = true
+
+[logging]
+level = INFO
+dir = logs
