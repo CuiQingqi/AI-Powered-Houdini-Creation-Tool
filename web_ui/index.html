@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Houdini AI</title>
+<link rel="stylesheet" href="static/css/style.css">
+</head>
+<body>
+
+<div id="app">
+
+<!-- CONTENT ROW: Sidebar + Main + Right -->
+<div id="content-row">
+
+<!-- LEFT: Workflow Tree -->
+<aside id="sidebar">
+  <div class="sidebar-head">
+    <span>WORKFLOW</span>
+    <div class="sidebar-actions">
+      <button id="btn-save-wf" class="btn-xs" title="Save workflow">Save</button>
+      <button id="btn-load-wf" class="btn-xs" title="Load workflow">Load</button>
+    </div>
+  </div>
+  <div id="workflow-tree" class="tree">
+    <div class="tree-empty">Send a message to start</div>
+  </div>
+</aside>
+
+<!-- CENTER + RIGHT -->
+<div id="main-area">
+
+  <!-- CENTER: Chat -->
+  <section id="panel-chat">
+    <div id="chat-messages">
+      <div class="chat-welcome">
+        <div class="welcome-icon">H</div>
+        <h2>Houdini AI</h2>
+        <p>Describe what you want to create</p>
+      </div>
+    </div>
+    <div class="chat-input-area">
+      <div class="chat-toolbar">
+        <span class="ctx-meter" id="ctx-meter" title="Context usage">0 / 1M</span>
+        <label class="sw-label" title="Deep thinking mode"><input type="checkbox" id="toggle-think"><span>Think</span></label>
+        <label class="sw-label" title="Search Obsidian vault for relevant notes"><input type="checkbox" id="toggle-search"><span>RAG</span></label>
+      </div>
+      <div class="chat-input-row">
+        <button id="btn-attach-image" class="btn-icon" title="Attach image">+</button>
+        <input type="file" id="file-input" accept="image/*" class="hidden">
+        <div id="image-preview" class="image-preview hidden">
+          <img id="preview-img" src="">
+          <button id="btn-remove-image" class="btn-remove-img">x</button>
+        </div>
+        <textarea id="chat-input" rows="1" placeholder="Describe what you want to create... (Enter to send)"></textarea>
+        <button id="btn-send" class="btn-send">Send</button>
+        <button id="btn-cancel" class="btn-cancel hidden">Stop</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- RIGHT: Viewport + Log + Graph -->
+  <aside id="right-panels">
+    <div class="right-panel" id="panel-viewport" style="flex:3">
+      <div class="panel-head"><span>Viewport</span><button id="btn-refresh" class="btn-xs">Capture</button></div>
+      <div class="panel-inner viewport-inner">
+        <img id="viewport-img" src="">
+        <div id="viewport-placeholder" class="placeholder"><span>No capture yet</span></div>
+      </div>
+    </div>
+    <div class="right-panel" id="panel-log" style="flex:2">
+      <div class="panel-head"><span>Tool Log</span><button id="btn-clear-log" class="btn-xs">Clear</button></div>
+      <div class="panel-inner log-inner" id="log-entries"></div>
+    </div>
+    <div class="right-panel" id="panel-graph" style="flex:2">
+      <div class="panel-head"><span>Node Graph</span><span class="graph-path">/obj</span></div>
+      <div class="panel-inner graph-inner">
+        <canvas id="node-graph-canvas"></canvas>
+        <div id="graph-placeholder" class="placeholder"><span>No network</span></div>
+      </div>
+    </div>
+  </aside>
+
+</div>
+
+</div><!-- /#content-row -->
+
+<!-- BOTTOM STATUS BAR -->
+<footer id="status-bar">
+  <div class="status-left">
+    <span id="dot-ai" class="stat-dot" title="AI status"></span>
+    <span id="ai-info" class="ai-info-text">Click to configure AI</span>
+  </div>
+  <div class="status-right">
+    <span id="dot-bridge" class="stat-dot" title="Houdini Bridge status"></span>
+    <span id="bridge-text">Houdini: disconnected</span>
+    <span id="uptime" class="uptime-text"></span>
+  </div>
+</footer>
+
+<!-- Bridge Help Tooltip -->
+<div id="bridge-tt" class="ttip hidden">
+  <div class="ttip-content">
+    <strong>Houdini Bridge not connected</strong><br><br>
+    1. Open Houdini<br>
+    2. Create a new Shelf Tool (right-click shelf → New Tool)<br>
+    3. Paste this code:<br>
+    <pre>import sys
+sys.path.insert(0, r"E:\Design\Houdini_AI\selfHoudiniAgent")
+sys.path.insert(0, r"E:\Design\Houdini_AI\selfHoudiniAgent\lib")
+for k in list(sys.modules.keys()):
+    if k.startswith('bridge'): del sys.modules[k]
+from bridge.server import get_bridge_server, start_bridge, stop_bridge
+server = get_bridge_server()
+if server.is_running:
+    stop_bridge()
+    print("Bridge stopped")
+else:
+    start_bridge("127.0.0.1", 9877)
+    print("Bridge started on ws://127.0.0.1:9877")</pre>
+    4. Click the shelf button<br>
+    5. The dot here turns green when connected
+  </div>
+  <div class="ttip-arrow"></div>
+</div>
+
+<!-- Settings Modal -->
+<div id="settings-modal" class="modal hidden">
+  <div class="modal-overlay"></div>
+  <div class="modal-box">
+    <div class="modal-head">
+      <span>AI Configuration</span>
+      <button id="btn-close-modal" class="btn-xs">X</button>
+    </div>
+    <div class="modal-body">
+      <label>Provider</label>
+      <select id="cfg-provider">
+        <option value="deepseek">DeepSeek</option>
+        <option value="openai">OpenAI</option>
+        <option value="anthropic">Anthropic / Claude</option>
+        <option value="ollama">Ollama (local)</option>
+      </select>
+      <label>Model</label>
+      <div class="model-row">
+        <select id="cfg-model-preset"><option value="">Custom...</option></select>
+        <input id="cfg-model" type="text" placeholder="deepseek-chat">
+      </div>
+      <label>Context Limit</label>
+      <select id="cfg-context">
+        <option value="32000">32K</option><option value="64000">64K</option>
+        <option value="128000" selected>128K</option><option value="256000">256K</option>
+        <option value="512000">512K</option><option value="1000000">1M</option>
+      </select>
+      <label>API Key</label>
+      <input id="cfg-apikey" type="password" placeholder="sk-...">
+      <label>Base URL</label>
+      <input id="cfg-baseurl" type="text" placeholder="https://api.deepseek.com/v1">
+      <label>Obsidian Vault Path (for RAG)</label>
+      <input id="cfg-obsidian" type="text" placeholder="E:\MyObsidianVault">
+      <button id="btn-save-settings" class="btn-primary">Save & Reload AI</button>
+      <div id="settings-status" class="settings-status"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Load Workflow Modal -->
+<div id="load-modal" class="modal hidden">
+  <div class="modal-overlay"></div>
+  <div class="modal-box" style="width:480px">
+    <div class="modal-head">
+      <span>Load Workflow</span>
+      <button id="btn-close-load" class="btn-xs">X</button>
+    </div>
+    <div class="modal-body" id="load-list">
+      <div class="tree-empty">No saved workflows</div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script src="static/js/app.js"></script>
+<script src="static/js/settings.js"></script>
+<script src="static/js/workflow-tree.js"></script>
+<script src="static/js/chat.js"></script>
+<script src="static/js/viewport.js"></script>
+<script src="static/js/tool-log.js"></script>
+<script src="static/js/nodegraph.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  App.init({
+    wsUrl: `ws://${location.host}/ws/ui`,
+    chatWsUrl: `ws://${location.host}/ws/chat`,
+  });
+});
+</script>
+</body>
+</html>
